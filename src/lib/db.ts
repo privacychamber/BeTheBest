@@ -16,8 +16,20 @@ import type {
   AppSetting,
 } from "@/types";
 
-const uri = process.env.MONGODB_URI;
-const dbName = process.env.MONGODB_DB || "bethebest";
+export function getActiveDbName(): string {
+  if (process.env.MONGODB_DB) {
+    return process.env.MONGODB_DB;
+  }
+  // Vercel Preview deployments use isolated preview database
+  if (process.env.VERCEL_ENV === "preview") {
+    return "bethebest_preview";
+  }
+  // Production deployment uses dedicated production database
+  if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+    return "bethebest_prod";
+  }
+  return "bethebest";
+}
 
 const options: MongoClientOptions = {
   maxPoolSize: 10,
@@ -34,22 +46,34 @@ declare global {
 }
 
 export function getMongoClientPromise(): Promise<MongoClient> {
-  if (!process.env.MONGODB_URI) {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
     throw new Error(
       "Missing required environment variable: 'MONGODB_URI'. " +
         "Please specify MONGODB_URI in your environment or .env.local file."
     );
   }
 
+  // Safety safeguard: Test execution cannot connect to or modify production database
+  const activeDb = getActiveDbName();
+  if (process.env.NODE_ENV === "test" && (activeDb === "bethebest_prod" || uri.includes("bethebest_prod"))) {
+    throw new Error("SECURITY SAFEGUARD: Test suite is prevented from connecting to or modifying production database 'bethebest_prod'.");
+  }
+
+  // Production environment should utilize MongoDB Atlas (mongodb+srv://)
+  if (process.env.NODE_ENV === "production" && !uri.startsWith("mongodb+srv://") && !uri.includes("atlas")) {
+    console.warn("[MongoDB Security] Production environment should use MongoDB Atlas (mongodb+srv://) for high availability and TLS encryption.");
+  }
+
   if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
     if (!global._mongoClientPromise) {
-      const client = new MongoClient(process.env.MONGODB_URI, options);
+      const client = new MongoClient(uri, options);
       global._mongoClientPromise = client.connect();
     }
     return global._mongoClientPromise;
   } else {
     if (!clientPromise) {
-      const client = new MongoClient(process.env.MONGODB_URI, options);
+      const client = new MongoClient(uri, options);
       clientPromise = client.connect();
     }
     return clientPromise;
@@ -58,7 +82,7 @@ export function getMongoClientPromise(): Promise<MongoClient> {
 
 export async function getDatabase(): Promise<Db> {
   const client = await getMongoClientPromise();
-  const activeDbName = process.env.MONGODB_DB || "bethebest";
+  const activeDbName = getActiveDbName();
   return client.db(activeDbName);
 }
 
@@ -93,7 +117,7 @@ export async function checkDatabaseHealth(): Promise<{
   error?: string;
 }> {
   const start = Date.now();
-  const activeDbName = process.env.MONGODB_DB || "bethebest";
+  const activeDbName = getActiveDbName();
   try {
     const db = await getDatabase();
     await db.command({ ping: 1 });

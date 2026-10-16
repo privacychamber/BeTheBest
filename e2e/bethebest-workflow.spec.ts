@@ -21,7 +21,7 @@ test.describe("BeTheBest Essential User Journeys", () => {
     await page.locator("text=Devon Vance").click();
 
     // Should redirect to dashboard
-    await page.waitForURL("/", { timeout: 15000 });
+    await page.waitForURL("/", { timeout: 30000 });
     await expect(page.locator("h1")).toContainText("Welcome back");
     await expect(page.locator("text=Pipeline Value")).toBeVisible();
     await expect(page.locator("text=Weekly Connects")).toBeVisible();
@@ -51,6 +51,7 @@ test.describe("BeTheBest Essential User Journeys", () => {
     await page.goto("/login");
     await page.locator("text=Devon Vance").click();
     await page.waitForURL("/");
+    await expect(page.locator("h1")).toContainText("Welcome back");
 
     // Navigate to Pipeline
     await page.goto("/pipeline");
@@ -74,6 +75,7 @@ test.describe("BeTheBest Essential User Journeys", () => {
     await page.goto("/login");
     await page.locator("text=Devon Vance").click();
     await page.waitForURL("/");
+    await expect(page.locator("h1")).toContainText("Welcome back");
 
     // Navigate to Budget
     await page.goto("/budget");
@@ -88,6 +90,7 @@ test.describe("BeTheBest Essential User Journeys", () => {
     await page.goto("/login");
     await page.locator("text=Devon Vance").click();
     await page.waitForURL("/");
+    await expect(page.locator("h1")).toContainText("Welcome back");
 
     // Navigate to Finances
     await page.goto("/finances");

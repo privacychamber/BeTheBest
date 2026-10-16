@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { QuickAddJobSchema } from "@/lib/validations";
 import { createOpportunity, listOpportunities } from "@/lib/dal";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, handleApiError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAuth();
+    await requireAuth(undefined, req);
     const { searchParams } = new URL(req.url);
 
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -24,21 +24,19 @@ export async function GET(req: NextRequest) {
     const data = await listOpportunities(filter, page, limit);
     return NextResponse.json({ success: true, ...data });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to fetch opportunities";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return handleApiError(err, "Failed to fetch opportunities");
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuth(["ADMIN", "BIDDER"]);
+    const user = await requireAuth(["ADMIN", "BIDDER"], req);
     const body = await req.json();
     const validated = QuickAddJobSchema.parse(body);
 
     const opportunity = await createOpportunity(validated, user);
     return NextResponse.json({ success: true, opportunity }, { status: 201 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create opportunity";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return handleApiError(err, "Failed to create opportunity");
   }
 }

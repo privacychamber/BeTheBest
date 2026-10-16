@@ -2,25 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { CreateContractSchema } from "@/lib/validations";
 import { createContractFromWonOpportunity } from "@/lib/dal";
 import { getCollections } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, handleApiError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    await requireAuth(["ADMIN", "COORDINATOR"]);
+    await requireAuth(["ADMIN", "COORDINATOR"], req);
     const { contracts } = await getCollections();
     const list = await contracts.find().sort({ createdAt: -1 }).toArray();
     return NextResponse.json({ success: true, contracts: list });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to load contracts";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return handleApiError(err, "Failed to load contracts");
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuth(["ADMIN", "COORDINATOR"]);
+    const user = await requireAuth(["ADMIN", "COORDINATOR"], req);
     const body = await req.json();
     const validated = CreateContractSchema.parse(body);
 
@@ -46,7 +45,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, contract }, { status: 201 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create contract";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return handleApiError(err, "Failed to create contract");
   }
 }

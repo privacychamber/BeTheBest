@@ -13,6 +13,16 @@ export async function runSeed(overrideUri?: string, overrideDbName?: string) {
   const targetUri = overrideUri || uri;
   const targetDbName = overrideDbName || dbName;
 
+  if (
+    (process.env.NODE_ENV === "production" || targetDbName === "bethebest_prod") &&
+    process.env.ALLOW_PRODUCTION_SEED !== "true"
+  ) {
+    throw new Error(
+      "[Seed Safety Guard] Seeding is blocked on production environments and 'bethebest_prod' database. " +
+        "Set ALLOW_PRODUCTION_SEED=true to override if explicitly intended."
+    );
+  }
+
   console.log(`[Seed] Connecting to MongoDB: ${targetUri.replace(/:([^:@]{3,})@/, ":***@")}`);
   const client = new MongoClient(targetUri);
   await client.connect();
