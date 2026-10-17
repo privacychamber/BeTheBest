@@ -31,6 +31,7 @@ import {
   createProposal,
 } from "../../src/lib/dal";
 import { runSeed } from "../../scripts/seed";
+import { provisionAdminUser } from "../../scripts/create_admin";
 import type { SessionUser } from "../../src/types";
 
 // Route handlers for direct API testing
@@ -342,3 +343,47 @@ describe("5. Financial Integrity & Connects Budget Governance", () => {
     expect(clearedRakesh.valid).toBe(true);
   });
 });
+
+describe("6. Secure First-Admin Provisioning & Production Sign-In", () => {
+  it("provisions a new admin user securely with valid bcrypt password hash", async () => {
+    const adminEmail = `secure.admin.${Date.now()}@bethebest.com`;
+    const res = await provisionAdminUser({
+      email: adminEmail,
+      name: "Super Admin",
+      password: "SecureAdminPassword123!",
+      uri: process.env.MONGODB_URI,
+      dbName: "bethebest_security_test",
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.email).toBe(adminEmail);
+    expect(res.userId).toBeDefined();
+
+    // Verify user can authenticate with credentials
+    const authUser = await authenticateCredentials(adminEmail, "SecureAdminPassword123!");
+    expect(authUser.email).toBe(adminEmail);
+    expect(authUser.role).toBe("ADMIN");
+
+    // Invalid password must fail
+    await expect(authenticateCredentials(adminEmail, "WrongPassword!")).rejects.toThrow("Invalid credentials");
+  });
+
+  it("generates a secure password when no password is provided", async () => {
+    const adminEmail = `generated.admin.${Date.now()}@bethebest.com`;
+    const res = await provisionAdminUser({
+      email: adminEmail,
+      name: "Generated Admin",
+      uri: process.env.MONGODB_URI,
+      dbName: "bethebest_security_test",
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.generatedPassword).toBeDefined();
+    expect(res.generatedPassword!.length).toBeGreaterThanOrEqual(16);
+
+    // Verify authentication succeeds with the generated password
+    const authUser = await authenticateCredentials(adminEmail, res.generatedPassword!);
+    expect(authUser.role).toBe("ADMIN");
+  });
+});
+

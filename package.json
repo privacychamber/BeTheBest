@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "admin:create": "tsx scripts/create_admin.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
