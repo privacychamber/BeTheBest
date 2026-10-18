@@ -60,6 +60,11 @@ export function getMongoClientPromise(): Promise<MongoClient> {
     throw new Error("SECURITY SAFEGUARD: Test suite is prevented from connecting to or modifying production database 'bethebest_prod'.");
   }
 
+  // Preview safeguard: Preview environment is strictly prohibited from touching bethebest_prod
+  if ((process.env.VERCEL_ENV === "preview" || process.env.APP_ENV === "preview") && (activeDb === "bethebest_prod" || uri.includes("bethebest_prod"))) {
+    throw new Error("SECURITY SAFEGUARD: Preview environment is strictly prohibited from connecting to production database 'bethebest_prod'.");
+  }
+
   // Production environment should utilize MongoDB Atlas (mongodb+srv://)
   if (process.env.NODE_ENV === "production" && !uri.startsWith("mongodb+srv://") && !uri.includes("atlas")) {
     console.warn("[MongoDB Security] Production environment should use MongoDB Atlas (mongodb+srv://) for high availability and TLS encryption.");

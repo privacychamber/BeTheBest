@@ -7,10 +7,16 @@ export async function GET() {
   const health = await checkDatabaseHealth();
 
   if (!health.ok) {
+    console.error("[Health Check Failed]", {
+      database: health.database,
+      latencyMs: health.latencyMs,
+      error: health.error,
+    });
     return NextResponse.json(
       {
         status: "unhealthy",
         database: "disconnected",
+        databaseName: health.database,
         latencyMs: health.latencyMs,
         error: "Database connectivity check failed",
         timestamp: new Date().toISOString(),
@@ -23,6 +29,7 @@ export async function GET() {
     {
       status: "healthy",
       database: "connected",
+      databaseName: health.database,
       latencyMs: health.latencyMs,
       timestamp: new Date().toISOString(),
     },
