@@ -73,13 +73,19 @@ export function getMongoClientPromise(): Promise<MongoClient> {
   if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
     if (!global._mongoClientPromise) {
       const client = new MongoClient(uri, options);
-      global._mongoClientPromise = client.connect();
+      global._mongoClientPromise = client.connect().catch((err) => {
+        global._mongoClientPromise = undefined;
+        throw err;
+      });
     }
     return global._mongoClientPromise;
   } else {
     if (!clientPromise) {
       const client = new MongoClient(uri, options);
-      clientPromise = client.connect();
+      clientPromise = client.connect().catch((err) => {
+        clientPromise = undefined as unknown as Promise<MongoClient>;
+        throw err;
+      });
     }
     return clientPromise;
   }
