@@ -12,6 +12,7 @@ export async function GET() {
       latencyMs: health.latencyMs,
       error: health.error,
     });
+    const sanitizedDetail = (health.error || "Unknown connection error").replace(/:([^@]+)@/g, ":***@");
     return NextResponse.json(
       {
         status: "unhealthy",
@@ -19,6 +20,7 @@ export async function GET() {
         databaseName: health.database,
         latencyMs: health.latencyMs,
         error: "Database connectivity check failed",
+        detail: sanitizedDetail,
         timestamp: new Date().toISOString(),
       },
       { status: 503 }
